@@ -1,8 +1,8 @@
 # 基于深度学习的图像超分辨率重建系统的设计与实现
 
-> 课程设计项目 · **当前阶段：阶段 5 已完成（待独立审查） —— 数据管线、训练循环与四套模型 100 Epoch 自主训练**
-> 依据：[阶段 5 任务书](docs/PHASE_05_TASK_SPEC.md) · [阶段 5 交付报告](docs/PHASE_05_REPORT.md) · [训练协议说明](docs/TRAINING_PROTOCOL.md) · [模型架构说明](docs/MODEL_ARCHITECTURE.md)
-> 状态：阶段 5 已完成全部实现、测试（13+6 项单测及 3 项变异探针通过）与四套模型各 100 Epoch 自主训练，并通过 `scripts/verify_training.py` 产物核验，**当前等待独立审查（未开启阶段 6）**。
+> 课程设计项目 · **当前阶段：阶段 6 已完成 —— SR 多基准 PSNR/SSIM 评测、课本 DIP 模块与 BUSI 超声分割消融实验**
+> 依据：[阶段 6 任务书](docs/PHASE_06_TASK_SPEC.md) · [阶段 6 交付报告](docs/PHASE_06_REPORT.md) · [阶段 5 交付报告](docs/PHASE_05_REPORT.md)
+> 状态：阶段 6 已完成全部编码、单元测试（`scripts/test_phase6_core.py`）、`DIV2K_valid / Set5 / Set14 / BSD100` 超分定量评测及 **BUSI 乳腺超声分割 6 组消融实验**，下一步进入阶段 7（双标签页 Gradio 系统集成）。
 > 分工：本仓库采用 **任务书作者 / 实现 Agent / 审查 Agent** 三角色隔离（独立会话、只通过文件交接），见 [阶段 5 任务书第十一章](docs/PHASE_05_TASK_SPEC.md)。
 
 ---
@@ -36,7 +36,8 @@
 - **工作区对齐（2026-11-13）**：项目根统一迁回 `D:\Project\CFBL`（见 `docs/WORKSPACE_MIGRATION.md`），并已推送 `main` 分支至 `https://github.com/momoya-zh/CFBL.git`。
 - **阶段 3（已完成）**：实现基于 OpenCV 的最近邻、双线性、双三次三种传统插值算法统一接口（`src/processing/interpolation.py`），完成测试与对比（`scripts/test_interpolation.py`），并冻结后续正式退化库为 Pillow `BICUBIC`（`a=-0.5`）与 `RGB 全通道` 口径。
 - **阶段 4（已完成，已于 `3884e03` 通过独立复审）**：实现 `SRCNN(scale)` 与 `ESPCN(scale)`（2×/4× 四套配置）、统一模型工厂（`src/models/model_factory.py`）、checkpoint 校验（`src/models/checkpoint.py`）、全链路 Pillow 预上采样（`src/processing/resample.py`）与统一推理接口（`src/inference/predictor.py`），并通过 CPU 5/5 测试与 RTX 4050 CUDA 前向/反向显存验证（`scripts/test_models.py`）。审查记录见 [4-A 设计审查](docs/PHASE_04A_DESIGN_REVIEW.md)、[4-B 实现审查](docs/PHASE_04B_IMPLEMENTATION_REVIEW.md)。
-- **阶段 5（已完成，待独立审查）**：实现数据管线（`src/data/`，13 项测试 + T-8/T-10 变异探针通过）与训练模块（`src/training/`，6 项测试 + T-9 变异探针通过），并完成 SRCNN ×2/×4 与 ESPCN ×2/×4 共四套配置各 100 Epoch 自主训练（`scripts/verify_training.py` 核验通过），交付 [`docs/PHASE_05_REPORT.md`](docs/PHASE_05_REPORT.md) 与 [`docs/TRAINING_PROTOCOL.md`](docs/TRAINING_PROTOCOL.md)。
+- **阶段 5（已完成）**：实现数据管线（`src/data/`，13 项测试 + T-8/T-10 变异探针通过）与训练模块（`src/training/`，6 项测试 + T-9 变异探针通过），并完成 SRCNN ×2/×4 与 ESPCN ×2/×4 共四套配置各 100 Epoch 自主训练（`scripts/verify_training.py` 核验通过），交付 [`docs/PHASE_05_REPORT.md`](docs/PHASE_05_REPORT.md) 与 [`docs/TRAINING_PROTOCOL.md`](docs/TRAINING_PROTOCOL.md)。
+- **阶段 6（已完成）**：实现 `src/evaluation/metrics.py`（PSNR/SSIM/分割指标）、`src/processing/dip_enhancement.py`（中值/高斯/直方图均衡/CLAHE/拉普拉斯锐化/FFT 高通/形态学后处理）与 `src/segmentation/`（U-Net），完成 `DIV2K_valid / Set5 / Set14 / BSD100` 超分定量评测及 **BUSI（647 例）乳腺超声分割受控消融实验**，交付 [`docs/PHASE_06_REPORT.md`](docs/PHASE_06_REPORT.md)。
 
 ## 4. 技术栈
 
@@ -171,8 +172,8 @@ cd /d D:\Project\CFBL
 | 阶段 2 | 数据集获取与完整性校验（DIV2K / Flickr2K） | 已完成，待负责人裁定未决事项 |
 | 阶段 3 | 传统图像插值算法实现（Nearest / Bilinear / Bicubic） | 已完成 |
 | 阶段 4 | 深度学习超分辨率模型实现（SRCNN / ESPCN） | 已完成（`3884e03` 通过复审） |
-| 阶段 5 | 数据管线、训练循环与四套模型自主训练 | 已完成（四套模型各 100 Epoch 训练与核验通过，待独立审查） |
-| 阶段 6 | 模型自主训练与多测试集对比实验 | 待开始 |
+| 阶段 5 | 数据管线、训练循环与四套模型自主训练 | 已完成 |
+| 阶段 6 | SR 基准评测、传统 DIP 与 BUSI 超声分割消融实验 | 已完成（[报告](docs/PHASE_06_REPORT.md)） |
 | 阶段 7 | Gradio 交互式演示系统集成 | 待开始 |
 | 阶段 8 | 性能测量、系统验收与最终报告 | 待开始 |
 
