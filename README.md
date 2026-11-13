@@ -1,8 +1,9 @@
 # 基于深度学习的图像超分辨率重建系统的设计与实现
 
-> 课程设计项目 · **当前阶段：阶段 4 —— 深度学习超分辨率模型实现（已完成，待审查闭环）**
-> 依据：[阶段 4 交付报告](docs/PHASE_04_REPORT.md) · [模型架构说明](docs/MODEL_ARCHITECTURE.md)
-> 状态：已完成 SRCNN / ESPCN（2× / 4×）四套模型、统一工厂、YAML 配置、Pillow 重采样与统一推理接口并通过测试；待审查闭环后，**进入阶段 5：训练管线与模型训练**。
+> 课程设计项目 · **当前阶段：阶段 5 已完成（待独立审查） —— 数据管线、训练循环与四套模型 100 Epoch 自主训练**
+> 依据：[阶段 5 任务书](docs/PHASE_05_TASK_SPEC.md) · [阶段 5 交付报告](docs/PHASE_05_REPORT.md) · [训练协议说明](docs/TRAINING_PROTOCOL.md) · [模型架构说明](docs/MODEL_ARCHITECTURE.md)
+> 状态：阶段 5 已完成全部实现、测试（13+6 项单测及 3 项变异探针通过）与四套模型各 100 Epoch 自主训练，并通过 `scripts/verify_training.py` 产物核验，**当前等待独立审查（未开启阶段 6）**。
+> 分工：本仓库采用 **任务书作者 / 实现 Agent / 审查 Agent** 三角色隔离（独立会话、只通过文件交接），见 [阶段 5 任务书第十一章](docs/PHASE_05_TASK_SPEC.md)。
 
 ---
 
@@ -24,7 +25,7 @@
 5. 提供 Gradio Web 界面，支持上传图像并选择模型 / 倍率进行推理。
 6. 形成可复现的实验报告与目录化的实验产物。
 
-> 第 1–6 项均为**研究目标 / 规划**；截至阶段 3，已完成环境与数据集准备及三种传统插值算法基线实现，深度学习模型与 Gradio 界面尚未开始。
+> 第 1–6 项均为**研究目标 / 规划**；截至阶段 5，已完成环境、数据集、三种传统插值基线、四套深度学习模型结构、数据与训练管线以及 **SRCNN/ESPCN ×2/×4 各 100 Epoch 自主训练**，PSNR/SSIM 基准评测与 Gradio 界面将在后续阶段实现。
 
 ## 3. 当前开发阶段
 
@@ -34,7 +35,8 @@
 - **阶段 2（数据集已就位，待负责人裁定未决事项）**：下载并校验 DIV2K（Train 800 / Valid 100）与 Flickr2K（2650）HR 图像，生成 `datasets/DATASET_MANIFEST.md` 与 `datasets/dataset_inventory.csv`（见 `docs/PHASE_02_DATASET_REPORT.md`）。
 - **工作区对齐（2026-11-13）**：项目根统一迁回 `D:\Project\CFBL`（见 `docs/WORKSPACE_MIGRATION.md`），并已推送 `main` 分支至 `https://github.com/momoya-zh/CFBL.git`。
 - **阶段 3（已完成）**：实现基于 OpenCV 的最近邻、双线性、双三次三种传统插值算法统一接口（`src/processing/interpolation.py`），完成测试与对比（`scripts/test_interpolation.py`），并冻结后续正式退化库为 Pillow `BICUBIC`（`a=-0.5`）与 `RGB 全通道` 口径。
-- **阶段 4（已完成，待审查闭环）**：实现 `SRCNN(scale)` 与 `ESPCN(scale)`（2×/4× 四套配置）、统一模型工厂（`src/models/model_factory.py`）、checkpoint 校验（`src/models/checkpoint.py`）、全链路 Pillow 预上采样（`src/processing/resample.py`）与统一推理接口（`src/inference/predictor.py`），并通过 CPU 5/5 测试与 RTX 4050 CUDA 前向/反向显存验证（`scripts/test_models.py`）。
+- **阶段 4（已完成，已于 `3884e03` 通过独立复审）**：实现 `SRCNN(scale)` 与 `ESPCN(scale)`（2×/4× 四套配置）、统一模型工厂（`src/models/model_factory.py`）、checkpoint 校验（`src/models/checkpoint.py`）、全链路 Pillow 预上采样（`src/processing/resample.py`）与统一推理接口（`src/inference/predictor.py`），并通过 CPU 5/5 测试与 RTX 4050 CUDA 前向/反向显存验证（`scripts/test_models.py`）。审查记录见 [4-A 设计审查](docs/PHASE_04A_DESIGN_REVIEW.md)、[4-B 实现审查](docs/PHASE_04B_IMPLEMENTATION_REVIEW.md)。
+- **阶段 5（已完成，待独立审查）**：实现数据管线（`src/data/`，13 项测试 + T-8/T-10 变异探针通过）与训练模块（`src/training/`，6 项测试 + T-9 变异探针通过），并完成 SRCNN ×2/×4 与 ESPCN ×2/×4 共四套配置各 100 Epoch 自主训练（`scripts/verify_training.py` 核验通过），交付 [`docs/PHASE_05_REPORT.md`](docs/PHASE_05_REPORT.md) 与 [`docs/TRAINING_PROTOCOL.md`](docs/TRAINING_PROTOCOL.md)。
 
 ## 4. 技术栈
 
@@ -64,9 +66,10 @@ CFBL/
 │   ├── DATASET_MANIFEST.md   #   数据集清单说明（已入库）
 │   └── dataset_inventory.csv #   3550 张 HR 图像 SHA-256 清单（已入库）
 ├── src/
-│   ├── data/                 # 数据集加载与预处理（未实现）
+│   ├── data/                 # 数据集加载、退化、增强与采样器（阶段 5 已实现）
 │   ├── models/               # SRCNN / ESPCN / 模型工厂 / checkpoint 校验（阶段 4 已实现）
 │   ├── processing/           # 传统插值与 Pillow BICUBIC 重采样（阶段 3/4 已实现）
+│   ├── training/             # L1 损失、断点续训与训练器（阶段 5 已实现）
 │   ├── evaluation/           # PSNR / SSIM（未实现）
 │   ├── inference/            # 统一推理封装 predictor.py（阶段 4 已实现）
 │   └── app/                  # Gradio 界面（未实现）
@@ -77,9 +80,15 @@ CFBL/
 │   ├── extract_flickr2k.py           # Flickr2K 解压脚本（阶段 2）
 │   ├── verify_datasets.py            # 数据集完整性与清单生成（阶段 2）
 │   ├── test_interpolation.py         # 传统插值测试与演示（阶段 3）
-│   └── test_models.py                # SRCNN / ESPCN 与 CUDA 测试（阶段 4）
+│   ├── test_models.py                # SRCNN / ESPCN 与 CUDA 测试（阶段 4）
+│   ├── build_npy_cache.py            # 训练集无损 .npy 缓存构建（阶段 5）
+│   ├── test_data_pipeline.py         # 数据管线 13 项测试 + T-8/T-10 变异探针（阶段 5）
+│   ├── test_training.py              # 训练链路 6 项测试 + T-9 变异探针（阶段 5）
+│   ├── train.py                      # 训练入口（支持断点续训，阶段 5）
+│   └── verify_training.py            # 四套模型训练产物核验（阶段 5）
 ├── configs/
 │   ├── models/               # 4 套模型结构与冻结协议 YAML 配置（阶段 4）
+│   ├── train/                # 4 套训练超参 YAML 配置（阶段 5）
 │   └── pip-constraints.txt   # 基础包版本锁定，防止补装依赖时被升级
 ├── checkpoints/              # 模型权重（.gitignore 排除实际文件）
 ├── results/                  # 实验图表与结果（排除实际文件）
@@ -92,7 +101,14 @@ CFBL/
 │   ├── INTERPOLATION_ALGORITHMS.md   # 阶段 3 插值算法原理说明
 │   ├── PHASE_03_REPORT.md            # 阶段 3 交付报告
 │   ├── MODEL_ARCHITECTURE.md         # 阶段 4 模型架构与协议说明
-│   └── PHASE_04_REPORT.md            # 阶段 4 交付报告
+│   ├── PHASE_04_REPORT.md            # 阶段 4 交付报告
+│   ├── PHASE_04A_DESIGN_REVIEW.md    # 阶段 4-A 独立设计审查
+│   ├── PHASE_04B_IMPLEMENTATION_REVIEW.md  # 阶段 4-B 独立实现审查（含 §9 复审）
+│   ├── PHASE_05_TASK_SPEC.md         # 阶段 5 任务书（定稿）
+│   ├── TRAINING_PROTOCOL.md          # 阶段 5 数据管线与训练协议说明
+│   ├── PHASE_05_REPORT.md            # 阶段 5 交付报告
+│   ├── TASK_SPEC_WRITING_GUIDE.md    # 阶段任务书撰写规范（作者角色专用）
+│   └── PROJECT_MASTER_SPEC.md        # 项目总书（唯一总基准）
 ├── tests/                    # 后续自动化测试代码
 ├── requirements.txt
 ├── .gitignore
@@ -154,8 +170,8 @@ cd /d D:\Project\CFBL
 | 阶段 1 | 环境搭建与项目初始化 | 已完成 |
 | 阶段 2 | 数据集获取与完整性校验（DIV2K / Flickr2K） | 已完成，待负责人裁定未决事项 |
 | 阶段 3 | 传统图像插值算法实现（Nearest / Bilinear / Bicubic） | 已完成 |
-| 阶段 4 | 深度学习超分辨率模型实现（SRCNN / ESPCN） | 已完成，待审查闭环 |
-| 阶段 5 | 数据管线、训练循环与四套模型自主训练 | 待开始 |
+| 阶段 4 | 深度学习超分辨率模型实现（SRCNN / ESPCN） | 已完成（`3884e03` 通过复审） |
+| 阶段 5 | 数据管线、训练循环与四套模型自主训练 | 已完成（四套模型各 100 Epoch 训练与核验通过，待独立审查） |
 | 阶段 6 | 模型自主训练与多测试集对比实验 | 待开始 |
 | 阶段 7 | Gradio 交互式演示系统集成 | 待开始 |
 | 阶段 8 | 性能测量、系统验收与最终报告 | 待开始 |

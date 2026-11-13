@@ -6,6 +6,10 @@
 - ``ESPCN``：直接将原始 LR 输入送入网络，由网络内部 PixelShuffle 完成空间放大。
 
 模型 ``forward()`` 本身保留无界回归输出；推理层默认通过 ``clamp=True`` 将输出裁剪至 ``[0, 1]``。
+
+**梯度语义（重要）：** 本模块两个入口都是**纯推理**接口 —— 内部 ``torch.no_grad()``，
+且 SRCNN 分支的 Pillow 预上采样会 ``detach()``。因此它们**不参与、也不能用于训练**：
+阶段 5 训练前向必须直接调用 ``model(...)``，退化与预上采样由数据管线完成。
 """
 from __future__ import annotations
 
@@ -32,7 +36,16 @@ def _resolve_device(
 
 
 def _preupsample_tensor_pillow(lr_tensor: torch.Tensor, scale: int) -> torch.Tensor:
-    """将 [B, 3, H, W] float32 张量逐样本经 Pillow BICUBIC 上采样至目标尺寸。"""
+    """将 [B, 3, H, W] float32 张量逐样本经 Pillow BICUBIC 上采样至目标尺寸。
+
+    .. warning::
+        **本函数会截断自动微分图，仅用于推理或离线预处理。**
+        内部先 ``lr_tensor.detach()`` 再转到 CPU 交给 Pillow 计算，返回值与输入之间
+        不存在 ``grad_fn`` 连接（实测：``predict_tensor`` 输出 ``requires_grad=False``、
+        ``grad_fn=None``、``input.grad=None``）。阶段 5 训练若需要"预上采样可参与梯度"，
+        必须另走张量路径（``F.interpolate(mode="bicubic")``，等价于 OpenCV 核而非 Pillow），
+        不要在本函数上取梯度 —— 那样只会得到 ``None`` 而不会报错。
+    """
     lr_cpu = lr_tensor.detach().to(device="cpu", dtype=torch.float32)
     upsampled_batch: list[torch.Tensor] = []
     for idx in range(lr_cpu.shape[0]):

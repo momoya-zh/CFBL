@@ -1,0 +1,24 @@
+model_name: espcn
+scale: 4
+use_preupsample: false
+seed: 42
+data:
+  train_dirs:
+    - datasets/DIV2K/DIV2K_train_HR
+    - datasets/Flickr2K/HR
+  val_dirs:
+    - datasets/DIV2K/DIV2K_valid_HR
+  patch_size: 128
+  num_workers: 4
+  val_workers: 0
+  pin_memory: true
+train:
+  epochs: 100
+  batch_size: 32
+  lr: 1.0e-4
+  loss: l1
+  optimizer: adam
+  scheduler: none
+  amp: false
+  degradation: pillow_bicubic
+  color_space: RGB
