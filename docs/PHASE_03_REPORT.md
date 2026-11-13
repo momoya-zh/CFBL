@@ -135,10 +135,15 @@ def upscale_image(image: np.ndarray, scale: int, method: str) -> np.ndarray
 - **`datasets/_archives/`（23.74 GiB 原始压缩包）：** **暂保留**，暂不删除。
 - **工程约定：** 已删除根目录 PyCharm 模板 `main.py`；后续阶段单元测试统一存放于 `tests/` 目录。
 
-### 2. 仍待阶段 4 冻结的事项
+### 2. 阶段 4 协议冻结裁定（2026-11-13 用户确认）
 
-1. **退化与通道口径待阶段 4 冻结：** 本阶段演示用 LR 采用 `PIL.Image.Resampling.BICUBIC`（\(a=-0.5\)）下采样，而 `upscale_image` 采用 OpenCV `cv2.INTER_CUBIC`（\(a=-0.75\)）；此外 `upscale_image` 当前仅支持 `(H, W, 3)` RGB 输入。进入阶段 4 前将由负责人确认并冻结正式退化库、色彩空间（Y 通道 vs RGB）与边界裁剪口径。
-2. **无正式指标评估：** 按阶段 3 规范，本次未实现 PSNR / SSIM 评价模块，也未对全量验证集计算正式指标。
+- **正式下采样退化库：** 冻结为 **Pillow `BICUBIC`**（`PIL.Image.Resampling.BICUBIC`，Keys `a = -0.5`），用于后续阶段生成训练/验证/测试 LR 图像。
+- **评价与模型通道口径：** 冻结为 **RGB 全通道**（三通道端到端输入/输出，PSNR/SSIM 在 RGB 空间统一计算，与 `src/processing/interpolation.py` 的 `(H, W, 3)` RGB 约定保持一致）。
+- **备注：** 本阶段传统插值基线模块 `upscale_image` 采用 OpenCV 实现；阶段 4 起正式训练与评测的退化管线严格使用上述已冻结口径，确保跨实验结果完全可比。
+
+### 3. 仍待后续阶段完成事项
+
+- **无正式指标评估：** 按阶段 3 规范，本次未实现 PSNR / SSIM 评价模块，也未对全量验证集计算正式指标，将在阶段 4 中落地。
 
 ---
 
