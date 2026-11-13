@@ -1,0 +1,18 @@
+model_name: espcn
+scale: 4
+in_channels: 3
+out_channels: 3
+color_space: RGB
+input_range: [0.0, 1.0]
+downsample_kernel: pillow_bicubic
+preupsample_kernel: null
+kernel_alpha: -0.5
+antialiasing: pillow_builtin_downscale
+init_strategy: pytorch_conv2d_default
+expected_params: 37200
+version: "1.0"
+layers:
+  - {name: conv1, type: Conv2d, in_channels: 3, out_channels: 64, kernel_size: 5, padding: 2, activation: ReLU}
+  - {name: conv2, type: Conv2d, in_channels: 64, out_channels: 32, kernel_size: 3, padding: 1, activation: ReLU}
+  - {name: conv3, type: Conv2d, in_channels: 32, out_channels: 48, kernel_size: 3, padding: 1, activation: null}
+  - {name: pixel_shuffle, type: PixelShuffle, upscale_factor: 4}
