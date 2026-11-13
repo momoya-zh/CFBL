@@ -126,11 +126,19 @@ def upscale_image(image: np.ndarray, scale: int, method: str) -> np.ndarray
 
 ---
 
-## 七、已知问题与未完成事项
+## 七、负责人裁定与未完成事项
 
-1. **阶段 2 未决事项待负责人书面裁定：** `docs/PHASE_02_DATASET_REPORT.md` 中的三项待裁定事项（镜像源可接受性、Flickr2K `License: Unknown`、23.74 GiB 原始归档去留）尚未闭环，需负责人正式裁定后再进入阶段 4。
-2. **退化与通道口径待阶段 4 冻结：** 本阶段演示用 LR 采用 `PIL.Image.Resampling.BICUBIC`（\(a=-0.5\)）下采样，而 `upscale_image` 采用 OpenCV `cv2.INTER_CUBIC`（\(a=-0.75\)）；此外 `upscale_image` 当前仅支持 `(H, W, 3)` RGB 输入。进入阶段 4 前必须统一并冻结正式退化库、色彩空间（Y 通道 vs RGB）与边界裁剪口径。
-3. **无正式指标评估：** 按阶段 3 规范，本次未实现 PSNR / SSIM 评价模块，也未对全量验证集计算正式指标。
+### 1. 阶段 2 未决事项书面裁定（2026-11-13 用户确认）
+
+- **DIV2K / Flickr2K 镜像来源：** **接受**（保留现有数据与校验清单）。
+- **Flickr2K `License: Unknown`：** **接受**（在课程设计范围内正常使用）。
+- **`datasets/_archives/`（23.74 GiB 原始压缩包）：** **暂保留**，暂不删除。
+- **工程约定：** 已删除根目录 PyCharm 模板 `main.py`；后续阶段单元测试统一存放于 `tests/` 目录。
+
+### 2. 仍待阶段 4 冻结的事项
+
+1. **退化与通道口径待阶段 4 冻结：** 本阶段演示用 LR 采用 `PIL.Image.Resampling.BICUBIC`（\(a=-0.5\)）下采样，而 `upscale_image` 采用 OpenCV `cv2.INTER_CUBIC`（\(a=-0.75\)）；此外 `upscale_image` 当前仅支持 `(H, W, 3)` RGB 输入。进入阶段 4 前将由负责人确认并冻结正式退化库、色彩空间（Y 通道 vs RGB）与边界裁剪口径。
+2. **无正式指标评估：** 按阶段 3 规范，本次未实现 PSNR / SSIM 评价模块，也未对全量验证集计算正式指标。
 
 ---
 
