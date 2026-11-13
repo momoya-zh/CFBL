@@ -1,8 +1,8 @@
 # 基于深度学习的图像超分辨率重建系统的设计与实现
 
-> 课程设计项目 · **当前阶段：阶段 3 —— 传统图像插值算法实现（已完成，待审核）**
-> 依据：[阶段 3 交付报告](docs/PHASE_03_REPORT.md) · [工作区迁移记录](docs/WORKSPACE_MIGRATION.md)
-> 状态：阶段 3 已完成并经独立代码审查，待负责人对阶段 2 数据来源与阶段 3 交付审核裁定后，**进入阶段 4：数据集与评估模块**。
+> 课程设计项目 · **当前阶段：阶段 4 —— 深度学习超分辨率模型实现（已完成，待审查闭环）**
+> 依据：[阶段 4 交付报告](docs/PHASE_04_REPORT.md) · [模型架构说明](docs/MODEL_ARCHITECTURE.md)
+> 状态：已完成 SRCNN / ESPCN（2× / 4×）四套模型、统一工厂、YAML 配置、Pillow 重采样与统一推理接口并通过测试；待审查闭环后，**进入阶段 5：训练管线与模型训练**。
 
 ---
 
@@ -33,7 +33,8 @@
 - **阶段 1（已完成）**：建立项目目录并固定 Python 解释器 `D:\Environment\Python\Python_AI\python.exe`，在不升级基础包的前提下补装 `scikit-image` 与 `gradio`，完成环境自检（`scripts/test_environment.py`）与 GPU 训练链路冒烟测试（`scripts/test_training_pipeline.py`）。
 - **阶段 2（数据集已就位，待负责人裁定未决事项）**：下载并校验 DIV2K（Train 800 / Valid 100）与 Flickr2K（2650）HR 图像，生成 `datasets/DATASET_MANIFEST.md` 与 `datasets/dataset_inventory.csv`（见 `docs/PHASE_02_DATASET_REPORT.md`）。
 - **工作区对齐（2026-11-13）**：项目根统一迁回 `D:\Project\CFBL`（见 `docs/WORKSPACE_MIGRATION.md`），并已推送 `main` 分支至 `https://github.com/momoya-zh/CFBL.git`。
-- **阶段 3（已完成，待审核）**：实现基于 OpenCV 的最近邻、双线性、双三次三种传统插值算法统一接口（`src/processing/interpolation.py`），完成 12 项功能/边界/语义测试与 DIV2K Validation 实际图像对比（`scripts/test_interpolation.py`），交付原理文档（`docs/INTERPOLATION_ALGORITHMS.md`）与阶段报告（`docs/PHASE_03_REPORT.md`）。
+- **阶段 3（已完成）**：实现基于 OpenCV 的最近邻、双线性、双三次三种传统插值算法统一接口（`src/processing/interpolation.py`），完成测试与对比（`scripts/test_interpolation.py`），并冻结后续正式退化库为 Pillow `BICUBIC`（`a=-0.5`）与 `RGB 全通道` 口径。
+- **阶段 4（已完成，待审查闭环）**：实现 `SRCNN(scale)` 与 `ESPCN(scale)`（2×/4× 四套配置）、统一模型工厂（`src/models/model_factory.py`）、checkpoint 校验（`src/models/checkpoint.py`）、全链路 Pillow 预上采样（`src/processing/resample.py`）与统一推理接口（`src/inference/predictor.py`），并通过 CPU 5/5 测试与 RTX 4050 CUDA 前向/反向显存验证（`scripts/test_models.py`）。
 
 ## 4. 技术栈
 
@@ -64,10 +65,10 @@ CFBL/
 │   └── dataset_inventory.csv #   3550 张 HR 图像 SHA-256 清单（已入库）
 ├── src/
 │   ├── data/                 # 数据集加载与预处理（未实现）
-│   ├── models/               # SRCNN / ESPCN（未实现）
-│   ├── processing/           # 传统图像插值模块（阶段 3 已实现并测试）
+│   ├── models/               # SRCNN / ESPCN / 模型工厂 / checkpoint 校验（阶段 4 已实现）
+│   ├── processing/           # 传统插值与 Pillow BICUBIC 重采样（阶段 3/4 已实现）
 │   ├── evaluation/           # PSNR / SSIM（未实现）
-│   ├── inference/            # 推理封装（未实现）
+│   ├── inference/            # 统一推理封装 predictor.py（阶段 4 已实现）
 │   └── app/                  # Gradio 界面（未实现）
 ├── scripts/
 │   ├── test_environment.py           # 环境自检（已实现并运行）
@@ -75,8 +76,10 @@ CFBL/
 │   ├── verify_archives.py            # 原始归档校验（阶段 2）
 │   ├── extract_flickr2k.py           # Flickr2K 解压脚本（阶段 2）
 │   ├── verify_datasets.py            # 数据集完整性与清单生成（阶段 2）
-│   └── test_interpolation.py         # 传统插值测试与演示（阶段 3）
+│   ├── test_interpolation.py         # 传统插值测试与演示（阶段 3）
+│   └── test_models.py                # SRCNN / ESPCN 与 CUDA 测试（阶段 4）
 ├── configs/
+│   ├── models/               # 4 套模型结构与冻结协议 YAML 配置（阶段 4）
 │   └── pip-constraints.txt   # 基础包版本锁定，防止补装依赖时被升级
 ├── checkpoints/              # 模型权重（.gitignore 排除实际文件）
 ├── results/                  # 实验图表与结果（排除实际文件）
@@ -87,7 +90,9 @@ CFBL/
 │   ├── PHASE_02_DATASET_REPORT.md    # 阶段 2 数据集报告
 │   ├── WORKSPACE_MIGRATION.md        # 工作区迁移记录
 │   ├── INTERPOLATION_ALGORITHMS.md   # 阶段 3 插值算法原理说明
-│   └── PHASE_03_REPORT.md            # 阶段 3 交付报告
+│   ├── PHASE_03_REPORT.md            # 阶段 3 交付报告
+│   ├── MODEL_ARCHITECTURE.md         # 阶段 4 模型架构与协议说明
+│   └── PHASE_04_REPORT.md            # 阶段 4 交付报告
 ├── tests/                    # 后续自动化测试代码
 ├── requirements.txt
 ├── .gitignore
@@ -148,9 +153,9 @@ cd /d D:\Project\CFBL
 | --- | --- | --- |
 | 阶段 1 | 环境搭建与项目初始化 | 已完成 |
 | 阶段 2 | 数据集获取与完整性校验（DIV2K / Flickr2K） | 已完成，待负责人裁定未决事项 |
-| 阶段 3 | 传统图像插值算法实现（Nearest / Bilinear / Bicubic） | 已完成，待审核 |
-| 阶段 4 | 数据管线、退化协议冻结与 PSNR / SSIM 评估模块 | 待开始 |
-| 阶段 5 | SRCNN / ESPCN 模型实现 | 待开始 |
+| 阶段 3 | 传统图像插值算法实现（Nearest / Bilinear / Bicubic） | 已完成 |
+| 阶段 4 | 深度学习超分辨率模型实现（SRCNN / ESPCN） | 已完成，待审查闭环 |
+| 阶段 5 | 数据管线、训练循环与四套模型自主训练 | 待开始 |
 | 阶段 6 | 模型自主训练与多测试集对比实验 | 待开始 |
 | 阶段 7 | Gradio 交互式演示系统集成 | 待开始 |
 | 阶段 8 | 性能测量、系统验收与最终报告 | 待开始 |

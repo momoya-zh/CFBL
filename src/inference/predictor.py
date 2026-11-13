@@ -78,22 +78,30 @@ def predict_tensor(
         )
     validate_image_tensor(lr_tensor)
 
+    original_device = _resolve_device(model, None)
     target_device = _resolve_device(model, device)
-    model_to_run = model.to(target_device)
-    model_to_run.eval()
+    was_training = model.training
 
-    if isinstance(model_to_run, SRCNN):
-        model_input = _preupsample_tensor_pillow(lr_tensor, validated_scale).to(
-            target_device
-        )
-    else:
-        model_input = lr_tensor.to(target_device)
+    try:
+        model_to_run = model.to(target_device) if target_device != original_device else model
+        model_to_run.eval()
 
-    with torch.no_grad():
-        output = model_to_run(model_input)
-        if clamp:
-            output = torch.clamp(output, 0.0, 1.0)
-    return output
+        if isinstance(model_to_run, SRCNN):
+            model_input = _preupsample_tensor_pillow(lr_tensor, validated_scale).to(
+                target_device
+            )
+        else:
+            model_input = lr_tensor.to(target_device)
+
+        with torch.no_grad():
+            output = model_to_run(model_input)
+            if clamp:
+                output = torch.clamp(output, 0.0, 1.0)
+        return output
+    finally:
+        model.train(was_training)
+        if target_device != original_device:
+            model.to(original_device)
 
 
 def predict_rgb_image(
@@ -118,23 +126,31 @@ def predict_rgb_image(
             f"倍率不匹配: 模型配置 scale={model.scale}，但调用传入 scale={validated_scale}"
         )
 
+    original_device = _resolve_device(model, None)
     target_device = _resolve_device(model, device)
-    model_to_run = model.to(target_device)
-    model_to_run.eval()
+    was_training = model.training
 
-    if isinstance(model_to_run, SRCNN):
-        # 图像入口先在 uint8 域执行 Pillow BICUBIC 上采样再归一化，与冻结协议完全一致
-        preup_rgb = bicubic_upsample_pillow(lr_rgb, validated_scale)
-        in_arr = np.ascontiguousarray(preup_rgb.transpose(2, 0, 1), dtype=np.float32) / 255.0
-    else:
-        in_arr = np.ascontiguousarray(lr_rgb.transpose(2, 0, 1), dtype=np.float32) / 255.0
+    try:
+        model_to_run = model.to(target_device) if target_device != original_device else model
+        model_to_run.eval()
 
-    in_tensor = torch.from_numpy(in_arr).unsqueeze(0).to(target_device)
-    with torch.no_grad():
-        out_tensor = model_to_run(in_tensor)
-        if clamp:
-            out_tensor = torch.clamp(out_tensor, 0.0, 1.0)
+        if isinstance(model_to_run, SRCNN):
+            # 图像入口先在 uint8 域执行 Pillow BICUBIC 上采样再归一化
+            preup_rgb = bicubic_upsample_pillow(lr_rgb, validated_scale)
+            in_arr = np.ascontiguousarray(preup_rgb.transpose(2, 0, 1), dtype=np.float32) / 255.0
+        else:
+            in_arr = np.ascontiguousarray(lr_rgb.transpose(2, 0, 1), dtype=np.float32) / 255.0
 
-    out_hwc = out_tensor.squeeze(0).detach().cpu().permute(1, 2, 0).numpy()
-    out_uint8 = np.clip(np.rint(out_hwc * 255.0), 0, 255).astype(np.uint8)
-    return out_uint8
+        in_tensor = torch.from_numpy(in_arr).unsqueeze(0).to(target_device)
+        with torch.no_grad():
+            out_tensor = model_to_run(in_tensor)
+            if clamp:
+                out_tensor = torch.clamp(out_tensor, 0.0, 1.0)
+
+        out_hwc = out_tensor.squeeze(0).detach().cpu().permute(1, 2, 0).numpy()
+        out_uint8 = np.clip(np.rint(out_hwc * 255.0), 0, 255).astype(np.uint8)
+        return out_uint8
+    finally:
+        model.train(was_training)
+        if target_device != original_device:
+            model.to(original_device)

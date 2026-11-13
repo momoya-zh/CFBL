@@ -60,7 +60,7 @@ def bicubic_upsample_pillow(rgb: np.ndarray, scale: int) -> np.ndarray:
         return np.asarray(upsampled, dtype=np.uint8)
 
     if rgb.dtype == np.float32:
-        # 逐通道以 Pillow 'F' 模式执行精确 float32 双三次插值，避免 uint8 量化损失
+        # 逐通道以 Pillow 'F' 模式执行精确 float32 双三次插值，并裁剪到 [0.0, 1.0] 与 uint8 域有界性对齐
         channels = [
             np.asarray(
                 Image.fromarray(rgb[:, :, ch], mode="F").resize(
@@ -70,7 +70,7 @@ def bicubic_upsample_pillow(rgb: np.ndarray, scale: int) -> np.ndarray:
             )
             for ch in range(3)
         ]
-        return np.stack(channels, axis=2)
+        return np.clip(np.stack(channels, axis=2), 0.0, 1.0).astype(np.float32)
 
     raise TypeError(
         f"不支持的图像数据类型 {rgb.dtype}，仅支持 uint8 或 float32"

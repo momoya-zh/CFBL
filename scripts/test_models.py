@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -34,7 +35,13 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.inference import predict_rgb_image, predict_tensor  # noqa: E402
-from src.models import ESPCN, SRCNN, create_model  # noqa: E402
+from src.models import (  # noqa: E402
+    ESPCN,
+    SRCNN,
+    create_model,
+    load_checkpoint,
+    save_checkpoint,
+)
 from src.processing import bicubic_upsample_pillow  # noqa: E402
 
 MODEL_CONFIG_DIR = PROJECT_ROOT / "configs" / "models"
@@ -146,7 +153,18 @@ def run_cpu_tests() -> tuple[list[TestRecord], list[dict[str, object]]]:
             assert y.dtype == torch.float32
             assert y.shape[1] == 3
             assert torch.isfinite(y).all(), f"{model_name} x{scale} 输出含 NaN/Inf"
+            assert bool((y < 0).any()), (
+                f"{model_name} x{scale} 随机初始化输出全非负，末层可能误加了 ReLU 截断"
+            )
             assert torch.equal(x, x_snapshot), f"{model_name} x{scale} 修改了输入张量"
+
+        # float32 预上采样在强阶跃边缘上必须裁剪到 [0.0, 1.0]
+        step_f32 = np.zeros((16, 16, 3), dtype=np.float32)
+        step_f32[:, 8:, :] = 1.0
+        up_f32 = bicubic_upsample_pillow(step_f32, 2)
+        assert float(up_f32.min()) >= 0.0 and float(up_f32.max()) <= 1.0, (
+            f"float32 预上采样越界: [{up_f32.min()}, {up_f32.max()}]"
+        )
 
         # 异常输入拦截
         m = create_model("espcn", 2)
@@ -174,8 +192,11 @@ def run_cpu_tests() -> tuple[list[TestRecord], list[dict[str, object]]]:
             assert out4.shape == (2, 3, 64, 96)
             assert float(out4.min()) >= 0.0 and float(out4.max()) <= 1.0
 
-        # 倍率不匹配必须报错
+        # 倍率不匹配必须报错；且推理不得改变模型 training 状态
         m_srcnn2 = create_model("srcnn", 2)
+        m_srcnn2.train(True)
+        _ = predict_tensor(m_srcnn2, lr_x2, scale=2, device="cpu", clamp=True)
+        assert m_srcnn2.training is True, "predict_tensor 不应改变调用方模型的 training 状态"
         _assert_raises(ValueError, predict_tensor, m_srcnn2, lr_x2, 4)
 
         # 分支混用检测：把已上采样的 64x96 错喂给 ESPCN(2)，尺寸必不等于目标 64x96
@@ -237,7 +258,23 @@ def run_cpu_tests() -> tuple[list[TestRecord], list[dict[str, object]]]:
                 assert torch.equal(pb_old, pb_now), (
                     f"{model_name} x{scale} 更新实例 A 后实例 B 参数发生变化"
                 )
-        return "4套配置多实例参数存储完全独立，单步更新互不干扰"
+
+        # 跨倍率 / 跨模型 checkpoint 加载必须报错拦截
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ckpt_path = Path(tmpdir) / "srcnn_x2.pt"
+            m_s2 = create_model("srcnn", 2)
+            save_checkpoint(m_s2, ckpt_path)
+
+            m_s2_reload = create_model("srcnn", 2)
+            load_checkpoint(m_s2_reload, ckpt_path)
+            for pa, pb in zip(m_s2.parameters(), m_s2_reload.parameters()):
+                assert torch.equal(pa, pb)
+
+            m_s4 = create_model("srcnn", 4)
+            _assert_raises(ValueError, load_checkpoint, m_s4, ckpt_path)
+            m_e2 = create_model("espcn", 2)
+            _assert_raises(ValueError, load_checkpoint, m_e2, ckpt_path)
+        return "4套配置多实例参数存储完全独立，且跨倍率/跨模型 checkpoint 均被拦截"
 
     check("1-工厂创建/scale绑定/YAML元数据一致性", test_factory_and_yaml_consistency)
     check("2-前向传播尺寸/张量合法性/异常校验", test_forward_and_tensor_validity)

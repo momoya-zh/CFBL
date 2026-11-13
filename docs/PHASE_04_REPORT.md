@@ -26,6 +26,7 @@
 | `src/models/srcnn.py` | 新增 | 三通道 RGB `SRCNN(scale)` 网络定义 |
 | `src/models/espcn.py` | 新增 | 三通道 RGB `ESPCN(scale)` 网络定义（含 `PixelShuffle`） |
 | `src/models/model_factory.py` | 新增 | `create_model(model_name, scale)` 统一模型工厂 |
+| `src/models/checkpoint.py` | 新增 | `save_checkpoint` / `load_checkpoint` 绑定并校验 `model_name` 与 `scale` |
 | `src/models/__init__.py` | 新增 | 模型模块导出 |
 | `src/inference/predictor.py` | 新增 | `predict_tensor` / `predict_rgb_image` 统一推理接口 |
 | `src/inference/__init__.py` | 新增 | 推理模块导出 |
@@ -84,7 +85,8 @@
 
 - **已实测**：SRCNN / ESPCN 四套配置创建、`scale` 绑定、YAML 元数据一致性、前向输出尺寸、异常输入拦截、`predict_tensor` / `predict_rgb_image` 推理、分支混用检测、`L1Loss` 反向传播梯度、多实例独立性、参数量统计及 RTX 4050 CUDA 前向/反向与峰值显存。
 - **未完成（按阶段 4 规范禁止提前实施）**：正式训练集构建（Dataset / DataLoader）、四套模型正式训练、PSNR/SSIM 评价模块、Gradio 界面。
-- **已知限制**：`SRCNN` 仅以 `self.scale` 元信息区分 ×2 与 ×4；阶段 5 保存/加载 checkpoint 时必须将 `scale` 持久化并在加载时校验，防止跨倍率权重错载。
+- **已知限制**：`SRCNN` 仅以 `self.scale` 元信息区分 ×2 与 ×4，若直接调用原生 `load_state_dict` 仍无法拦截跨倍率误载，因此必须统一通过 `src/models/checkpoint.py::save_checkpoint` / `load_checkpoint` 持久化并校验 `model_name` 与 `scale`。
+- **预上采样数值域与量化残差说明**：`bicubic_upsample_pillow` 已对 `float32` 路径显式裁剪至 `[0.0, 1.0]`；`float32` 路径与 `uint8` 路径同属 Pillow `BICUBIC`（`a=-0.5`，无换核偏移），两者间存在 ≤ 1.3/255 量级的量化残差，阶段 5 数据管线与推理端将统一冻结单一路线。
 
 ---
 
@@ -92,6 +94,6 @@
 
 - **Git 分支**：`main`（已关联 `origin -> https://github.com/momoya-zh/CFBL.git`）。
 - **阶段 5 建议**：
-  1. 在 `src/data/` 中直接复用 `src/processing/resample.py::bicubic_upsample_pillow`（与同一 Pillow `BICUBIC` 下采样协议）构建训练/验证 Dataset 与 DataLoader，确保训练与推理零偏移。
+  1. 在 `src/data/` 中直接复用 `src/processing/resample.py::bicubic_upsample_pillow`（与同一 Pillow `BICUBIC` 下采样协议）构建训练/验证 Dataset 与 DataLoader，并统一冻结预处理数值域（无换核偏移，仅存在 ≤ 1.3/255 量化残差，训练与推理采用同一路线）。
   2. 在 `src/evaluation/` 中实现 RGB 全通道 PSNR / SSIM 评价模块，并按 Pillow `BICUBIC` 重算阶段 6 双三次基线。
   3. Checkpoint 持久化格式必须包含 `model_name` 与 `scale` 字段，加载时强制校验一致性。
