@@ -1,0 +1,24 @@
+# 阶段 1 依赖安装版本锁定（pip -c）
+#
+# 用途：补装 scikit-image / gradio 时，禁止 pip 升级或替换已经通过 GPU 实测的核心依赖。
+# 依据：2026-11-12《图像超分辨率课设开发环境检查报告》+ 安装前 pip list --format=freeze 实测。
+# 用法：
+#   "D:\Environment\Python\Python_AI\python.exe" -m pip install -c configs/pip-constraints.txt scikit-image gradio
+#
+# 注意：这些版本是本机 Python_AI 环境的实测值，不是通用推荐值；换环境时必须重新核对。
+# 本文件只做「上限保护」，不用于安装这些包本身（它们已经安装）。
+
+torch==2.14.1+cu130
+torchvision==0.29.1+cu130
+
+numpy==2.5.4
+opencv-python==5.0.0.93
+pillow==11.3.0
+scipy==1.18.1
+matplotlib==3.11.2
+scikit-learn==1.9.1
+pandas==3.1.0
+networkx==3.7
+packaging==26.3
+tqdm==4.70.1
+PyYAML==6.0.3

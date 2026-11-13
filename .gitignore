@@ -1,0 +1,52 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+
+# ---- IDE / OS ----
+.idea/
+.vscode/
+.workbuddy/
+.ipynb_checkpoints/
+Thumbs.db
+Desktop.ini
+
+# ---- 数据集：只保留占位 .gitkeep，真实图像一律不入库 ----
+# 注意：若写成 `datasets/*` + `!datasets/**/.gitkeep`，父目录已被排除，
+# git 不会继续遍历，.gitkeep 例外规则实际不生效。这里改用
+# `datasets/**` + 重新包含目录 + 重新包含 .gitkeep 的写法（已用 git check-ignore 验证）。
+datasets/**
+!datasets/**/
+!datasets/**/.gitkeep
+
+# 阶段 2 交付的文档 / 清单属于项目文档，允许纳入版本管理；
+# 数据集图像、原始压缩包与逐文件清单里描述的实际图像仍不入库。
+!datasets/DATASET_MANIFEST.md
+!datasets/dataset_inventory.csv
+
+# ---- 实验产物：只保留占位 .gitkeep ----
+checkpoints/*
+!checkpoints/.gitkeep
+results/*
+!results/.gitkeep
+logs/*
+!logs/.gitkeep
+
+# ---- 模型权重与大型二进制产物 ----
+*.pth
+*.pt
+*.ckpt
+*.onnx
+*.safetensors
+*.h5
+*.npy
+*.npz
+
+# 说明：不排除源码、配置、文档、测试代码；不排除 docs/ 下的报告。
+# 说明：不添加通配 *.png / *.jpg，以免误伤 README / 文档所需插图。
