@@ -46,6 +46,8 @@ from src.processing.interpolation import (  # noqa: E402
 DIV2K_VALID_DIR = PROJECT_ROOT / "datasets" / "DIV2K" / "DIV2K_valid_HR"
 RESULTS_ROOT = PROJECT_ROOT / "results" / "interpolation"
 DEMO_IMAGES = ["0801.png", "0802.png", "0803.png"]
+TIMING_WARMUP = 1
+TIMING_REPEATS = 5
 
 
 @dataclass
@@ -59,14 +61,16 @@ class TestRecord:
 
 @dataclass
 class TimingRecord:
-    """单次实际图像插值耗时记录。"""
+    """单次实际图像插值耗时统计记录（含预热后多次重复）。"""
 
     image_name: str
     method: str
     scale: int
     input_size: tuple[int, int]  # (W, H)
     output_size: tuple[int, int]  # (W, H)
-    elapsed_ms: float
+    mean_ms: float
+    min_ms: float
+    max_ms: float
 
 
 def _assert_raises(exc_type: type[BaseException], fn, *args, **kwargs) -> None:
@@ -217,7 +221,47 @@ def run_unit_tests() -> list[TestRecord]:
                 assert out.dtype == np.float32
         return "float32 RGB 图像在 2x/4x 下保持 dtype 与尺寸正确"
 
+    def test_semantic_oracle_nearest_bilinear_bicubic() -> str:
+        rng = np.random.default_rng(123)
+        img = rng.integers(0, 256, size=(24, 32, 3), dtype=np.uint8)
+        for scale in SUPPORTED_SCALES:
+            # 1) Nearest 必须逐像素等于 np.repeat（maxdiff == 0）
+            out_nearest = upscale_image(img, scale, "nearest")
+            expected_nearest = np.repeat(np.repeat(img, scale, axis=0), scale, axis=1)
+            assert np.array_equal(out_nearest, expected_nearest), (
+                f"nearest x{scale} 与 np.repeat 不一致"
+            )
+
+            # 2) Bilinear 与 PIL BILINEAR 独立实现最大绝对差 <= 1
+            out_bilinear = upscale_image(img, scale, "bilinear")
+            pil_bilinear = np.asarray(
+                Image.fromarray(img).resize(
+                    (img.shape[1] * scale, img.shape[0] * scale),
+                    resample=Image.Resampling.BILINEAR,
+                ),
+                dtype=np.uint8,
+            )
+            max_diff = int(
+                np.max(np.abs(out_bilinear.astype(np.int16) - pil_bilinear.astype(np.int16)))
+            )
+            assert max_diff <= 1, f"bilinear x{scale} 与 PIL BILINEAR 最大差={max_diff} > 1"
+
+        # 3) 强阶跃边缘上，Bicubic 存在负权重核引起的过冲/下冲（振铃），Bilinear 严格有界
+        step_img = np.full((16, 16, 3), 50, dtype=np.uint8)
+        step_img[:, 8:, :] = 200
+        step_bilinear = upscale_image(step_img, 4, "bilinear")
+        step_bicubic = upscale_image(step_img, 4, "bicubic")
+        assert int(step_bilinear.min()) >= 50 and int(step_bilinear.max()) <= 200, (
+            f"bilinear 在阶跃边缘出现越界: [{step_bilinear.min()}, {step_bilinear.max()}]"
+        )
+        assert int(step_bicubic.min()) < 50 and int(step_bicubic.max()) > 200, (
+            f"bicubic 在阶跃边缘未出现预期过冲/下冲（可能误映射到 bilinear）: "
+            f"[{step_bicubic.min()}, {step_bicubic.max()}]"
+        )
+        return "独立语义校验通过（nearest==np.repeat, bilinear~PIL<=1, bicubic阶跃过冲）"
+
     check("功能-三种算法调用与输出差异", test_three_methods_and_distinct_outputs)
+    check("功能-三种算法语义正确性校验", test_semantic_oracle_nearest_bilinear_bicubic)
     check("功能-2x与4x输出尺寸核验", test_scale_2x_and_4x_exact_size)
     check("功能-RGB通道数与顺序保持", test_rgb_channel_preservation)
     check("功能-原始输入图像不被修改", test_input_immutability)
@@ -395,10 +439,18 @@ def run_real_image_tests() -> list[TimingRecord]:
 
             outputs: dict[str, np.ndarray] = {}
             for method in INTERPOLATION_METHODS:
-                t0 = time.perf_counter()
-                out_rgb = upscale_image(lr_rgb, scale, method)
-                t1 = time.perf_counter()
+                for _ in range(TIMING_WARMUP):
+                    _ = upscale_image(lr_rgb, scale, method)
 
+                samples_ms: list[float] = []
+                out_rgb: np.ndarray | None = None
+                for _ in range(TIMING_REPEATS):
+                    t0 = time.perf_counter()
+                    out_rgb = upscale_image(lr_rgb, scale, method)
+                    t1 = time.perf_counter()
+                    samples_ms.append((t1 - t0) * 1000.0)
+
+                assert out_rgb is not None
                 out_h, out_w = out_rgb.shape[:2]
                 assert out_w == lr_w * scale and out_h == lr_h * scale, (
                     f"{filename} {method} x{scale} 尺寸不匹配: "
@@ -406,7 +458,6 @@ def run_real_image_tests() -> list[TimingRecord]:
                 )
                 assert out_rgb.shape[2] == 3
 
-                elapsed_ms = (t1 - t0) * 1000.0
                 timings.append(
                     TimingRecord(
                         image_name=filename,
@@ -414,7 +465,9 @@ def run_real_image_tests() -> list[TimingRecord]:
                         scale=scale,
                         input_size=(lr_w, lr_h),
                         output_size=(out_w, out_h),
-                        elapsed_ms=elapsed_ms,
+                        mean_ms=sum(samples_ms) / len(samples_ms),
+                        min_ms=min(samples_ms),
+                        max_ms=max(samples_ms),
                     )
                 )
                 outputs[method] = out_rgb
@@ -453,19 +506,22 @@ def main() -> int:
     if failed_count > 0:
         return 1
 
-    print("\n[2/2] DIV2K Validation 实际图像测试（只读读取原图，仅统计纯插值耗时）：")
+    print(
+        f"\n[2/2] DIV2K Validation 实际图像测试"
+        f"（只读读取原图，预热 {TIMING_WARMUP} 次 + 重复 {TIMING_REPEATS} 次纯插值耗时）："
+    )
     timings = run_real_image_tests()
     print(
-        f"  {'图像':<10} {'算法':<10} {'倍率':<5} {'输入尺寸(WxH)':<15} "
-        f"{'输出尺寸(WxH)':<15} {'耗时(ms)':>10}"
+        f"  {'图像':<10} {'算法':<10} {'倍率':<5} {'输入(WxH)':<12} "
+        f"{'输出(WxH)':<12} {'均值(ms)':>10} {'最小(ms)':>10} {'最大(ms)':>10}"
     )
-    print("  " + "-" * 70)
+    print("  " + "-" * 86)
     for t in timings:
         in_str = f"{t.input_size[0]}x{t.input_size[1]}"
         out_str = f"{t.output_size[0]}x{t.output_size[1]}"
         print(
-            f"  {t.image_name:<10} {t.method:<10} {t.scale}x   {in_str:<15} "
-            f"{out_str:<15} {t.elapsed_ms:>10.3f}"
+            f"  {t.image_name:<10} {t.method:<10} {t.scale}x   {in_str:<12} "
+            f"{out_str:<12} {t.mean_ms:>10.3f} {t.min_ms:>10.3f} {t.max_ms:>10.3f}"
         )
 
     print(f"\n结果输出目录: {RESULTS_ROOT}")

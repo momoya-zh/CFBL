@@ -68,8 +68,8 @@ def _validate_scale(scale: int) -> int:
     return scale
 
 
-def _validate_method(method: str) -> tuple[str, int]:
-    """校验插值算法名称并返回规范化名称与 OpenCV 插值标志。"""
+def _validate_method(method: str) -> int:
+    """校验插值算法名称并返回对应的 OpenCV 插值标志。"""
     if not isinstance(method, str):
         raise TypeError(
             f"插值算法 method 必须为字符串，实际类型为 {type(method).__name__}"
@@ -80,7 +80,7 @@ def _validate_method(method: str) -> tuple[str, int]:
         raise ValueError(
             f"不支持的插值算法: {method!r}，仅支持: {supported}"
         )
-    return normalized, INTERPOLATION_METHODS[normalized]
+    return INTERPOLATION_METHODS[normalized]
 
 
 def upscale_image(image: np.ndarray, scale: int, method: str) -> np.ndarray:
@@ -101,7 +101,7 @@ def upscale_image(image: np.ndarray, scale: int, method: str) -> np.ndarray:
     """
     _validate_image(image)
     validated_scale = _validate_scale(scale)
-    _, interpolation_flag = _validate_method(method)
+    interpolation_flag = _validate_method(method)
 
     height, width = image.shape[:2]
     target_width = width * validated_scale

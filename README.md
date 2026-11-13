@@ -1,8 +1,8 @@
 # 基于深度学习的图像超分辨率重建系统的设计与实现
 
-> 课程设计项目 · **当前阶段：阶段 1 —— 环境搭建与项目初始化**
-> 依据：《图像超分辨率课设开发环境检查报告》（2026-11-12）
-> 状态：阶段 1 已完成，等待项目负责人审核；**审核通过后才进入阶段 2：数据集处理**。
+> 课程设计项目 · **当前阶段：阶段 3 —— 传统图像插值算法实现（已完成，待审核）**
+> 依据：[阶段 3 交付报告](docs/PHASE_03_REPORT.md) · [工作区迁移记录](docs/WORKSPACE_MIGRATION.md)
+> 状态：阶段 3 已完成并经独立代码审查，待负责人对阶段 2 数据来源与阶段 3 交付审核裁定后，**进入阶段 4：数据集与评估模块**。
 
 ---
 
@@ -24,20 +24,16 @@
 5. 提供 Gradio Web 界面，支持上传图像并选择模型 / 倍率进行推理。
 6. 形成可复现的实验报告与目录化的实验产物。
 
-> 第 1–6 项均为**研究目标 / 规划**，阶段 1 只完成开发基础，尚未实现任何一项。
+> 第 1–6 项均为**研究目标 / 规划**；截至阶段 3，已完成环境与数据集准备及三种传统插值算法基线实现，深度学习模型与 Gradio 界面尚未开始。
 
 ## 3. 当前开发阶段
 
-**阶段 1（已完成，待审核）** 的实际范围：
+截至目前已完成的工作：
 
-- 建立独立项目目录（阶段 1 时为 `D:\Project\ImageSuperResolution`）；**2026-11-13 起项目根统一为 `D:\Project\CFBL`**，迁移依据与验证记录见 `docs/WORKSPACE_MIGRATION.md`。
-- 固定使用 `D:\Environment\Python\Python_AI\python.exe`，不依赖系统默认 `python` / `py` launcher。
-- 在**不升级任何基础包**的前提下，补装 `scikit-image` 与 `gradio`。
-- 初始化 Git 仓库（`main` / `dev` 分支）与 `.gitignore`。
-- 提供 `scripts/test_environment.py` 与 `scripts/test_training_pipeline.py` 并实际运行验证。
-
-**阶段 1 明确不做**（属于后续阶段）：SRCNN / ESPCN 实现、传统插值算法、PSNR / SSIM 实现、
-Gradio 界面开发、数据集下载、正式训练、复杂数据缓存系统、额外训练框架抽象。
+- **阶段 1（已完成）**：建立项目目录并固定 Python 解释器 `D:\Environment\Python\Python_AI\python.exe`，在不升级基础包的前提下补装 `scikit-image` 与 `gradio`，完成环境自检（`scripts/test_environment.py`）与 GPU 训练链路冒烟测试（`scripts/test_training_pipeline.py`）。
+- **阶段 2（数据集已就位，待负责人裁定未决事项）**：下载并校验 DIV2K（Train 800 / Valid 100）与 Flickr2K（2650）HR 图像，生成 `datasets/DATASET_MANIFEST.md` 与 `datasets/dataset_inventory.csv`（见 `docs/PHASE_02_DATASET_REPORT.md`）。
+- **工作区对齐（2026-11-13）**：项目根统一迁回 `D:\Project\CFBL`（见 `docs/WORKSPACE_MIGRATION.md`），并已推送 `main` 分支至 `https://github.com/momoya-zh/CFBL.git`。
+- **阶段 3（已完成，待审核）**：实现基于 OpenCV 的最近邻、双线性、双三次三种传统插值算法统一接口（`src/processing/interpolation.py`），完成 12 项功能/边界/语义测试与 DIV2K Validation 实际图像对比（`scripts/test_interpolation.py`），交付原理文档（`docs/INTERPOLATION_ALGORITHMS.md`）与阶段报告（`docs/PHASE_03_REPORT.md`）。
 
 ## 4. 技术栈
 
@@ -57,30 +53,42 @@ Gradio 界面开发、数据集下载、正式训练、复杂数据缓存系统�
 
 ```text
 CFBL/
-├── datasets/                 # 数据集占位目录（本阶段不下载任何数据）
-│   ├── DIV2K/                #   训练集（DIV2K_train_HR 及 2×/4× LR）
-│   ├── Set5/                 #   测试集
-│   ├── Set14/                #   测试集
-│   ├── BSD100/               #   测试集
-│   └── Urban100/             #   测试集
+├── datasets/                 # 数据集目录（图像与压缩包由 .gitignore 排除）
+│   ├── DIV2K/                #   DIV2K_train_HR (800) / DIV2K_valid_HR (100)
+│   ├── Flickr2K/             #   Flickr2K_HR (2650)
+│   ├── Set5/                 #   标准测试集（待引入）
+│   ├── Set14/                #   标准测试集（待引入）
+│   ├── BSD100/               #   标准测试集（待引入）
+│   ├── Urban100/             #   标准测试集（待引入）
+│   ├── DATASET_MANIFEST.md   #   数据集清单说明（已入库）
+│   └── dataset_inventory.csv #   3550 张 HR 图像 SHA-256 清单（已入库）
 ├── src/
 │   ├── data/                 # 数据集加载与预处理（未实现）
 │   ├── models/               # SRCNN / ESPCN（未实现）
-│   ├── processing/           # 图像退化 / 插值（未实现）
+│   ├── processing/           # 传统图像插值模块（阶段 3 已实现并测试）
 │   ├── evaluation/           # PSNR / SSIM（未实现）
 │   ├── inference/            # 推理封装（未实现）
 │   └── app/                  # Gradio 界面（未实现）
 ├── scripts/
 │   ├── test_environment.py           # 环境自检（已实现并运行）
-│   └── test_training_pipeline.py     # GPU 训练链路冒烟测试（已实现并运行）
+│   ├── test_training_pipeline.py     # GPU 训练链路冒烟测试（已实现并运行）
+│   ├── verify_archives.py            # 原始归档校验（阶段 2）
+│   ├── extract_flickr2k.py           # Flickr2K 解压脚本（阶段 2）
+│   ├── verify_datasets.py            # 数据集完整性与清单生成（阶段 2）
+│   └── test_interpolation.py         # 传统插值测试与演示（阶段 3）
 ├── configs/
 │   └── pip-constraints.txt   # 基础包版本锁定，防止补装依赖时被升级
 ├── checkpoints/              # 模型权重（.gitignore 排除实际文件）
 ├── results/                  # 实验图表与结果（排除实际文件）
 ├── logs/                     # 运行日志（排除实际文件）
 ├── docs/
-│   └── PHASE_01_REPORT.md    # 阶段 1 交付报告
-├── tests/                    # 后续测试代码
+│   ├── ENVIRONMENT_REPORT.md         # 阶段 0 环境检查报告
+│   ├── PHASE_01_REPORT.md            # 阶段 1 交付报告
+│   ├── PHASE_02_DATASET_REPORT.md    # 阶段 2 数据集报告
+│   ├── WORKSPACE_MIGRATION.md        # 工作区迁移记录
+│   ├── INTERPOLATION_ALGORITHMS.md   # 阶段 3 插值算法原理说明
+│   └── PHASE_03_REPORT.md            # 阶段 3 交付报告
+├── tests/                    # 后续自动化测试代码
 ├── requirements.txt
 ├── .gitignore
 └── README.md
@@ -134,27 +142,26 @@ cd /d D:\Project\CFBL
 > 输出中的耗时包含首次 CUDA 上下文 / cuDNN / cuBLAS 初始化开销，属单次观测值。
 > **真正的训练速度与显存峰值测量留待阶段 5。**
 
-## 9. 后续模块规划
+## 9. 项目阶段规划
 
-以下为**规划 / 建议**，内容以各阶段任务书为准，阶段 1 未实现：
-
-| 阶段 | 主题 | 主要工作（规划） |
+| 阶段 | 主题 | 状态 |
 | --- | --- | --- |
-| 阶段 2 | 数据集处理 | DIV2K 下载与校验、HR/LR 图块生成、测试集整理 |
-| 阶段 3 | 模型与训练 | SRCNN / ESPCN 的 2×、4× 四套配置、训练循环与配置管理 |
-| 阶段 4 | 评估与演示 | PSNR / SSIM、四个测试集评估、Gradio 界面 |
-| 阶段 5 | 性能测量与验收 | **训练速度、显存峰值、推理耗时测量**，系统测试与报告 |
-
-`src/` 下六个模块对应上述主题，阶段 1 只建目录占位，不含业务代码。
+| 阶段 1 | 环境搭建与项目初始化 | 已完成 |
+| 阶段 2 | 数据集获取与完整性校验（DIV2K / Flickr2K） | 已完成，待负责人裁定未决事项 |
+| 阶段 3 | 传统图像插值算法实现（Nearest / Bilinear / Bicubic） | 已完成，待审核 |
+| 阶段 4 | 数据管线、退化协议冻结与 PSNR / SSIM 评估模块 | 待开始 |
+| 阶段 5 | SRCNN / ESPCN 模型实现 | 待开始 |
+| 阶段 6 | 模型自主训练与多测试集对比实验 | 待开始 |
+| 阶段 7 | Gradio 交互式演示系统集成 | 待开始 |
+| 阶段 8 | 性能测量、系统验收与最终报告 | 待开始 |
 
 ## 10. 数据集目录说明
 
-- `datasets/DIV2K/`：训练集。计划使用 DIV2K 的 800 张 HR 训练图像及对应 2× / 4× 低分辨率图像。
-- `datasets/Set5/`、`Set14/`、`BSD100/`、`Urban100/`：四个标准测试集。
-- **阶段 1 只创建占位目录，未下载任何数据集**。
-- `.gitignore` 已排除 `datasets/**` 下所有真实文件，仅保留 `.gitkeep`；
-  `checkpoints/`、`results/`、`logs/` 同样只保留占位文件。
-- 请勿把 DIV2K、模型权重（`.pth` / `.pt` / `.ckpt` / `.onnx`）或大型实验产物提交到仓库。
+- `datasets/DIV2K/`：已完成 `DIV2K_train_HR`（800 张）与 `DIV2K_valid_HR`（100 张）下载与 SHA-256 校验。
+- `datasets/Flickr2K/`：已完成 `Flickr2K_HR`（2650 张）解压与 SHA-256 校验。
+- `datasets/Set5/`、`Set14/`、`BSD100/`、`Urban100/`：四个标准测试集占位目录（待后续阶段引入）。
+- `.gitignore` 已排除 `datasets/**` 下所有真实图像与压缩包，仅保留 `.gitkeep`、`DATASET_MANIFEST.md` 与 `dataset_inventory.csv`；`checkpoints/`、`results/`、`logs/` 同样只保留占位文件。
+- 请勿把数据集图像、模型权重（`.pth` / `.pt` / `.ckpt` / `.onnx`）或大型实验产物提交到仓库。
 
 ## 附：依赖补装记录（阶段 1）
 
