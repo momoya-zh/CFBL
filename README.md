@@ -1,8 +1,8 @@
 # 基于深度学习的图像超分辨率重建系统的设计与实现
 
-> 课程设计项目 · **当前阶段：阶段 6 已完成 —— SR 多基准 PSNR/SSIM 评测、课本 DIP 模块与 BUSI 超声分割消融实验**
-> 依据：[阶段 6 任务书](docs/PHASE_06_TASK_SPEC.md) · [阶段 6 交付报告](docs/PHASE_06_REPORT.md) · [阶段 5 交付报告](docs/PHASE_05_REPORT.md)
-> 状态：阶段 6 已完成全部编码、单元测试（`scripts/test_phase6_core.py`）、`DIV2K_valid / Set5 / Set14 / BSD100` 超分定量评测及 **BUSI 乳腺超声分割 6 组消融实验**，下一步进入阶段 7（双标签页 Gradio 系统集成）。
+> 课程设计项目 · **当前阶段：阶段 7 已完成 —— 三标签页 Gradio 交互演示系统集成**
+> 依据：[阶段 7 交付报告](docs/PHASE_07_REPORT.md) · [阶段 6 交付报告](docs/PHASE_06_REPORT.md) · [阶段 5 交付报告](docs/PHASE_05_REPORT.md)
+> 状态：阶段 7 已完成 `src/app/`、`scripts/launch_app.py` 与 `scripts/test_app.py` 全链路验证（`RESULT = PASS`），下一步进入阶段 8（最终验收、淮安大学格式实验文档与答辩 PPT 素材整理）。
 > 分工：本仓库采用 **任务书作者 / 实现 Agent / 审查 Agent** 三角色隔离（独立会话、只通过文件交接），见 [阶段 5 任务书第十一章](docs/PHASE_05_TASK_SPEC.md)。
 
 ---
@@ -38,6 +38,7 @@
 - **阶段 4（已完成，已于 `3884e03` 通过独立复审）**：实现 `SRCNN(scale)` 与 `ESPCN(scale)`（2×/4× 四套配置）、统一模型工厂（`src/models/model_factory.py`）、checkpoint 校验（`src/models/checkpoint.py`）、全链路 Pillow 预上采样（`src/processing/resample.py`）与统一推理接口（`src/inference/predictor.py`），并通过 CPU 5/5 测试与 RTX 4050 CUDA 前向/反向显存验证（`scripts/test_models.py`）。审查记录见 [4-A 设计审查](docs/PHASE_04A_DESIGN_REVIEW.md)、[4-B 实现审查](docs/PHASE_04B_IMPLEMENTATION_REVIEW.md)。
 - **阶段 5（已完成）**：实现数据管线（`src/data/`，13 项测试 + T-8/T-10 变异探针通过）与训练模块（`src/training/`，6 项测试 + T-9 变异探针通过），并完成 SRCNN ×2/×4 与 ESPCN ×2/×4 共四套配置各 100 Epoch 自主训练（`scripts/verify_training.py` 核验通过），交付 [`docs/PHASE_05_REPORT.md`](docs/PHASE_05_REPORT.md) 与 [`docs/TRAINING_PROTOCOL.md`](docs/TRAINING_PROTOCOL.md)。
 - **阶段 6（已完成）**：实现 `src/evaluation/metrics.py`（PSNR/SSIM/分割指标）、`src/processing/dip_enhancement.py`（中值/高斯/直方图均衡/CLAHE/拉普拉斯锐化/FFT 高通/形态学后处理）与 `src/segmentation/`（U-Net），完成 `DIV2K_valid / Set5 / Set14 / BSD100` 超分定量评测及 **BUSI（647 例）乳腺超声分割受控消融实验**，交付 [`docs/PHASE_06_REPORT.md`](docs/PHASE_06_REPORT.md)。
+- **阶段 7（已完成）**：实现三标签页 Gradio 演示系统（`src/app/backend.py`、`src/app/gradio_app.py`、`scripts/launch_app.py`），集成超分辨率（×2/×4 + DIP 增强 + 实时 PSNR/SSIM）、BUSI 超声分割消融对比与实验总览表，通过 `scripts/test_app.py` 全链路冒烟测试（`RESULT = PASS`），交付 [`docs/PHASE_07_REPORT.md`](docs/PHASE_07_REPORT.md)。
 
 ## 4. 技术栈
 
@@ -174,7 +175,7 @@ cd /d D:\Project\CFBL
 | 阶段 4 | 深度学习超分辨率模型实现（SRCNN / ESPCN） | 已完成（`3884e03` 通过复审） |
 | 阶段 5 | 数据管线、训练循环与四套模型自主训练 | 已完成 |
 | 阶段 6 | SR 基准评测、传统 DIP 与 BUSI 超声分割消融实验 | 已完成（[报告](docs/PHASE_06_REPORT.md)） |
-| 阶段 7 | Gradio 交互式演示系统集成 | 待开始 |
+| 阶段 7 | Gradio 交互式演示系统集成 | 已完成（[报告](docs/PHASE_07_REPORT.md)） |
 | 阶段 8 | 性能测量、系统验收与最终报告 | 待开始 |
 
 ## 10. 数据集目录说明
