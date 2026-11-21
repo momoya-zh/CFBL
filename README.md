@@ -1,8 +1,8 @@
 # 基于深度学习的图像超分辨率重建系统的设计与实现
 
-> 课程设计项目 · **当前阶段：阶段 7 已完成 —— 三标签页 Gradio 交互演示系统集成**
-> 依据：[阶段 7 交付报告](docs/PHASE_07_REPORT.md) · [阶段 6 交付报告](docs/PHASE_06_REPORT.md) · [阶段 5 交付报告](docs/PHASE_05_REPORT.md)
-> 状态：阶段 7 已完成 `src/app/`、`scripts/launch_app.py` 与 `scripts/test_app.py` 全链路验证（`RESULT = PASS`），下一步进入阶段 8（最终验收、淮安大学格式实验文档与答辩 PPT 素材整理）。
+> 课程设计项目 · **当前阶段：阶段 8 已完成（全项目验收收尾） —— 课程论文成稿、答辩大纲与全链路回归通过**
+> 依据：[最终验收报告](docs/PHASE_08_FINAL_REPORT.md) · [阶段 7 交付报告](docs/PHASE_07_REPORT.md) · [阶段 6 交付报告](docs/PHASE_06_REPORT.md) · [阶段 5 交付报告](docs/PHASE_05_REPORT.md)
+> 状态：阶段 1–8 已全部完成并通过全链路回归验收（`test_phase6_core.py`、`verify_training.py`、`test_app.py` 均为 `RESULT = PASS`），已基于学校模板生成课程论文 `.docx` 与 8 分钟答辩 PPT 大纲。
 > 分工：本仓库采用 **任务书作者 / 实现 Agent / 审查 Agent** 三角色隔离（独立会话、只通过文件交接），见 [阶段 5 任务书第十一章](docs/PHASE_05_TASK_SPEC.md)。
 
 ---
@@ -176,7 +176,7 @@ cd /d D:\Project\CFBL
 | 阶段 5 | 数据管线、训练循环与四套模型自主训练 | 已完成 |
 | 阶段 6 | SR 基准评测、传统 DIP 与 BUSI 超声分割消融实验 | 已完成（[报告](docs/PHASE_06_REPORT.md)） |
 | 阶段 7 | Gradio 交互式演示系统集成 | 已完成（[报告](docs/PHASE_07_REPORT.md)） |
-| 阶段 8 | 性能测量、系统验收与最终报告 | 待开始 |
+| 阶段 8 | 性能测量、系统验收与最终报告 | 已完成（[最终报告](docs/PHASE_08_FINAL_REPORT.md) · [答辩大纲](docs/DEFENSE_PPT_OUTLINE.md)） |
 
 ## 10. 数据集目录说明
 
